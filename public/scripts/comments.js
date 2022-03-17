@@ -31,20 +31,31 @@ async function fetchCommentsForPost() {
 
   const postId = loadCommentsBtnElement.dataset.postid; // gives us access to the postid which we added to the comment via data-postid
 
-  const response = await fetch(`/posts/${postId}/comments`); // starts process of fetching a resource from the network, and returns a promise which is fulfilled when the response is available. Using a string here, specifically a URL (that of the postID) as the parameter value to which we want to send a get request. Here we use the special backtick quotes since we are injecting js into it. The response is simply an object with a bunch of data about the response (lol)
+  try {
+      const response = await fetch(`/posts/${postId}/comments`); // starts process of fetching a resource from the network, and returns a promise which is fulfilled when the response is available. Using a string here, specifically a URL (that of the postID) as the parameter value to which we want to send a get request. Here we use the special backtick quotes since we are injecting js into it. The response is simply an object with a bunch of data about the response (lol)
 
-  const responseData = await response.json(); // gives extracted and already parsed response data as a js object. async because it can take some time theoretically.
-
-  if (responseData && responseData > 0) {
-    const commentsListElement = createCommentsList(responseData); // creates a list of comments using the responseData we got from the page/document
-
-    commentsSectionElement.innerHTML = ""; // emptying the current shit on that section (which in this case is just the button + the paragraph talking about loading them)
-
-    commentsSectionElement.appendChild(commentsListElement); // populates the above now empty space with a list of our comments.
-  } else {
-    commentsSectionElement.firstElementChild.textContent =
-      "We could not find any comments."; // this will set the text content of paragraph in the comments section to the above there. We use firstElementChild because it is the first element child of the comments section.
+  if (!response.ok) {
+    alert("fetching comments failed!"); // alerting that getting comments failed
+    return; // and then returning
   }
+
+    const responseData = await response.json(); // gives extracted and already parsed response data as a js object. async because it can take some time theoretically.
+
+    if (responseData && responseData > 0) {
+      const commentsListElement = createCommentsList(responseData); // creates a list of comments using the responseData we got from the page/document
+
+      commentsSectionElement.innerHTML = ""; // emptying the current shit on that section (which in this case is just the button + the paragraph talking about loading them)
+
+      commentsSectionElement.appendChild(commentsListElement); // populates the above now empty space with a list of our comments.
+    } else {
+      commentsSectionElement.firstElementChild.textContent =
+        "We could not find any comments."; // this will set the text content of paragraph in the comments section to the above there. We use firstElementChild because it is the first element child of the comments section.
+    }
+  } catch {
+    alert("getting comments failed!");
+  }
+
+
 }
 
 async function saveComment(event) {
@@ -56,7 +67,8 @@ async function saveComment(event) {
 
   const comment = { title: enteredTitle, text: enteredText };
 
-  const response = await fetch(`/posts/${postId}/comments`, {
+  try {
+    const response = await fetch(`/posts/${postId}/comments`, {
     method: "POST",
     body: JSON.stringify(comment), // converting our comment there into JSON so that it can be posted
     headers: {
@@ -64,8 +76,21 @@ async function saveComment(event) {
       "Content-Type": "application/json", // tells the middleware that it contains json data.
     },
   });
+      if (response.ok) { // returns true if we get a 200 response code (success)
 
-  fetchCommentsForPost();
+        fetchCommentsForPost(); // thus it fetches the comments if it succeeds.
+    } else {
+      alert("Could not send comment!"); // custom error handling if for whatever reason server gets request but fails
+    }
+  } catch (error) {
+    alert("could not send request"); // in case even sending the response to server fails
+  }
+
+  
+
+   
+
+
 }
 
 loadCommentsBtnElement.addEventListener("click", fetchCommentsForPost);
